@@ -127,15 +127,17 @@ internal class DuoCanvasView(
     }
 
     private fun drawElement(canvas: Canvas) {
-        val size = minOf(width, height).toFloat()
-        if (size <= 0f || height <= 0) return
-        val k = size / DESIGN_SIZE
-        val stroke = STROKE * k
-        val radius = (size - stroke) / 2f
-        val cx = width / 2f
-        // The view is taller than the ring so the percentage can sit above a center punch-hole.
-        // The ring stays in the lower square; the extra height is the space above it.
-        val cy = height - size / 2f
+        // Rive's artboard is 120 x 136, with a 103-unit ring at (60, 77.5).
+        // The previous /103 scaling enlarged and clipped the fallback (notably the bottom dots),
+        // making the battery ring look wider than its Rive counterpart.
+        val frame = DuoArtboard.frame(width, height)
+        val k = frame.scale
+        if (k <= 0f) return
+        val size = DuoArtboard.RING_DIAMETER * k
+        val stroke = DuoArtboard.RING_STROKE * k
+        val radius = DuoArtboard.RING_RADIUS * k
+        val cx = frame.centerX
+        val cy = frame.centerY
         ring.strokeWidth = stroke
         val drawRing = visual.ringOpacity > 0.5f
         val drawIndicators = visual.indicatorsOpacity > 0.5f
@@ -377,8 +379,6 @@ internal class DuoCanvasView(
 
     private companion object {
         const val TAG = "DuoSB"
-        const val DESIGN_SIZE = 103f  // ring diameter in design units: r 51.5
-        const val STROKE = 8f
         const val TRIM_ORIGIN = 270f  // Rive fraction 0 == 12 o'clock == canvas 270 degrees
         const val TRACK_ALPHA = 0.22f
         const val MIN_SWEEP = 0.5f
@@ -411,7 +411,7 @@ internal class DuoCanvasView(
          * The four signal dots, design units from the ring centre. Same seats as the Rive ellipses.
          * Each circle is 11 units across ([DOT_RADIUS]).
          */
-        const val DOT_RADIUS = 5.5f
+        const val DOT_RADIUS = SignalDotsGeometry.DOT_RADIUS
 
         /** The cellular label's centre, matching the Rive text node (group-relative y 1). */
         const val NETWORK_SLOT_Y = 1f

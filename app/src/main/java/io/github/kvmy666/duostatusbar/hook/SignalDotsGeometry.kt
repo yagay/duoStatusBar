@@ -8,7 +8,9 @@ internal object SignalDotsGeometry {
     )
     /** All four dots follow the original curved arc, but move toward the ring center. */
     const val INSET_SCALE = 0.72f
-    const val INNER_RADIUS = 4.0f
+    /** Inner and outer signals use the same dot diameter; the inset is positional only. */
+    const val DOT_RADIUS = 5.5f
+    const val INNER_RADIUS = DOT_RADIUS
     fun innerX(i: Int): Float = OUTER[i][0] * INSET_SCALE
     fun innerY(i: Int): Float = OUTER[i][1] * INSET_SCALE
 }

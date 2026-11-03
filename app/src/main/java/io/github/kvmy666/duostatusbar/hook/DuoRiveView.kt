@@ -1,6 +1,7 @@
 package io.github.kvmy666.duostatusbar.hook
 
 import android.content.Context
+import android.graphics.Canvas
 import android.graphics.SurfaceTexture
 import android.os.Handler
 import android.os.Looper
@@ -41,7 +42,8 @@ internal class DuoRiveView(
 ) : FrameLayout(context), DuoElement {
 
     private var rive: RiveAnimationView? = null
-    private var insetDots: InsetSimDotsView? = null
+    /** Draw the second SIM after the Rive child without adding a second full-size View. */
+    private val insetDots = InsetSimDotsPainter()
     private var viewModelInstance: ViewModelInstance? = null
 
     /**
@@ -115,6 +117,12 @@ internal class DuoRiveView(
 
     override val ui: View get() = this
 
+    /** Extra circles share this View's exact bounds, without a child changing measurement/layout. */
+    override fun dispatchDraw(canvas: Canvas) {
+        super.dispatchDraw(canvas)
+        insetDots.draw(canvas, width, height)
+    }
+
     override val rendererName: String get() = "Rive"
 
     /** True once the drawing is live; the host uses this to decide whether it may hide stock icons. */
@@ -153,10 +161,6 @@ internal class DuoRiveView(
                 .setTouchPassThrough(true)
             val view = GuardedRiveView(builder)
             addView(view, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
-            // A transparent four-dot overlay keeps the Rive animation and compiled .riv unchanged.
-            insetDots = InsetSimDotsView(context).also {
-                addView(it, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
-            }
             rive = view
 
             pollForInstance()
@@ -243,7 +247,9 @@ internal class DuoRiveView(
         val next = targetVisual ?: return
         val shown = part.apply(motion.push(next, SystemClock.uptimeMillis()))
         val failures = try {
-            target.apply(shown).also { insetDots?.setVisual(shown) }
+            val count = target.apply(shown)
+            if (insetDots.setVisual(shown)) postInvalidateOnAnimation()
+            count
         } catch (t: Throwable) {
             L.e("render failed: ${t.javaClass.simpleName}: ${t.message}")
             return
