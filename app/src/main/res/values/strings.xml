@@ -70,7 +70,7 @@
     <string name="settings_dnd_middle">Middle of the ring</string>
     <string name="settings_dnd_dots">Signal dots</string>
     <string name="settings_sim">Cellular line</string>
-    <string name="settings_sim_detail">Which SIM the signal follows.</string>
+    <string name="settings_sim_detail">The outer dots follow this SIM. With two active SIMs, the inset dots show the other SIM.</string>
     <string name="settings_sim_auto">Automatic (data line)</string>
     <string name="settings_sim_1">SIM 1</string>
     <string name="settings_sim_2">SIM 2</string>

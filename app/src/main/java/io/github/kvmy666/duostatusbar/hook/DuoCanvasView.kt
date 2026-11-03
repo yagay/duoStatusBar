@@ -245,11 +245,23 @@ internal class DuoCanvasView(
                 if (cells[i] <= 0f) continue
                 moonPaint.color = withAlpha(visual.fgColor, cells[i])
                 canvas.drawCircle(
-                    cx + CELL_DOTS[i][0] * k,
-                    cy + CELL_DOTS[i][1] * k,
+                    cx + SignalDotsGeometry.OUTER[i][0] * k,
+                    cy + SignalDotsGeometry.OUTER[i][1] * k,
                     DOT_RADIUS * k,
                     moonPaint
                 )
+            }
+            // Four smaller circles on the concentric inset arc for the other active SIM.
+            val inner = floatArrayOf(
+                visual.innerCell1Opacity, visual.innerCell2Opacity,
+                visual.innerCell3Opacity, visual.innerCell4Opacity
+            )
+            for (i in inner.indices) {
+                if (inner[i] <= 0f) continue
+                moonPaint.color = withAlpha(visual.fgColor, inner[i])
+                canvas.drawCircle(cx + SignalDotsGeometry.innerX(i) * k,
+                    cy + SignalDotsGeometry.innerY(i) * k,
+                    SignalDotsGeometry.INNER_RADIUS * k, moonPaint)
             }
             val moons = floatArrayOf(
                 visual.moon1Opacity, visual.moon2Opacity, visual.moon3Opacity, visual.moon4Opacity
@@ -258,8 +270,8 @@ internal class DuoCanvasView(
                 if (moons[i] <= 0f) continue
                 drawMoon(
                     canvas,
-                    cx + CELL_DOTS[i][0] * k,
-                    cy + CELL_DOTS[i][1] * k,
+                    cx + SignalDotsGeometry.OUTER[i][0] * k,
+                    cy + SignalDotsGeometry.OUTER[i][1] * k,
                     k * DotMoonMotion.DOT_SCALE * moons[i],
                     moons[i]
                 )
@@ -399,12 +411,6 @@ internal class DuoCanvasView(
          * The four signal dots, design units from the ring centre. Same seats as the Rive ellipses.
          * Each circle is 11 units across ([DOT_RADIUS]).
          */
-        val CELL_DOTS = arrayOf(
-            floatArrayOf(-27f, 42.7f),
-            floatArrayOf(-9.5f, 49.7f),
-            floatArrayOf(8.5f, 50.2f),
-            floatArrayOf(26f, 44.3f)
-        )
         const val DOT_RADIUS = 5.5f
 
         /** The cellular label's centre, matching the Rive text node (group-relative y 1). */

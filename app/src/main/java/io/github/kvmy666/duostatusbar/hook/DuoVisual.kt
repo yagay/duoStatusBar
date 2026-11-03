@@ -93,7 +93,11 @@ data class DuoVisual(
      * Whether the charging *journey* plays. False shows the bolt instantly, which is the user's
      * "charging animation" switch (FR-25).
      */
-    val animateCharge: Boolean = true
+    val animateCharge: Boolean = true,
+    val innerCell1Opacity: Float = 0f,
+    val innerCell2Opacity: Float = 0f,
+    val innerCell3Opacity: Float = 0f,
+    val innerCell4Opacity: Float = 0f
 ) {
     /**
      * Interpolates between two snapshots, for the FR-09 setting demos that morph one setting between
@@ -147,7 +151,11 @@ data class DuoVisual(
             cellLevel = if (past) other.cellLevel else cellLevel,
             charging = if (past) other.charging else charging,
             visible = if (past) other.visible else visible,
-            animateCharge = if (past) other.animateCharge else animateCharge
+            animateCharge = if (past) other.animateCharge else animateCharge,
+            innerCell1Opacity = at(innerCell1Opacity, other.innerCell1Opacity),
+            innerCell2Opacity = at(innerCell2Opacity, other.innerCell2Opacity),
+            innerCell3Opacity = at(innerCell3Opacity, other.innerCell3Opacity),
+            innerCell4Opacity = at(innerCell4Opacity, other.innerCell4Opacity)
         )
     }
 }

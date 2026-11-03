@@ -41,6 +41,7 @@ internal class DuoRiveView(
 ) : FrameLayout(context), DuoElement {
 
     private var rive: RiveAnimationView? = null
+    private var insetDots: InsetSimDotsView? = null
     private var viewModelInstance: ViewModelInstance? = null
 
     /**
@@ -152,6 +153,10 @@ internal class DuoRiveView(
                 .setTouchPassThrough(true)
             val view = GuardedRiveView(builder)
             addView(view, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+            // A transparent four-dot overlay keeps the Rive animation and compiled .riv unchanged.
+            insetDots = InsetSimDotsView(context).also {
+                addView(it, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+            }
             rive = view
 
             pollForInstance()
@@ -238,7 +243,7 @@ internal class DuoRiveView(
         val next = targetVisual ?: return
         val shown = part.apply(motion.push(next, SystemClock.uptimeMillis()))
         val failures = try {
-            target.apply(shown)
+            target.apply(shown).also { insetDots?.setVisual(shown) }
         } catch (t: Throwable) {
             L.e("render failed: ${t.javaClass.simpleName}: ${t.message}")
             return

@@ -30,23 +30,30 @@ internal object CellReader {
         current
     }
 
-    /**
-     * Per-SIM cellular levels (0..4), in SIM-slot order, or an empty list when there is only one active
-     * subscription. The dual-SIM display splits the four spheres into two pairs, one per line, so it needs
-     * both levels at once (the user's request; iOS shows both carriers' signal strength).
-     */
+    /** Returns two active SIM slot levels or null, preserving the old layout on single-SIM phones. */
     @SuppressLint("MissingPermission")
-    fun cellLevels(context: Context, airplane: Boolean): List<Int> = try {
-        if (airplane) emptyList()
-        else {
-            val sm = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
-            val subs = sm?.activeSubscriptionInfoList.orEmpty().sortedBy { it.simSlotIndex }
-            if (subs.size < 2) emptyList() else subs.map { levelForSubscription(context, it.subscriptionId) }
+    fun dualSimSignals(context: Context, airplane: Boolean): DualSimSignals? = try {
+        if (airplane) null else {
+            val manager = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
+            val subs = manager?.activeSubscriptionInfoList.orEmpty()
+                .filter { it.simSlotIndex >= 0 }
+                .sortedBy { it.simSlotIndex }
+            if (subs.size < 2) null else {
+                val defaultId = SubscriptionManager.getDefaultDataSubscriptionId()
+                DualSimSignals(
+                    first = levelForSubscription(context, subs[0].subscriptionId),
+                    second = levelForSubscription(context, subs[1].subscriptionId),
+                    defaultDataIndex = if (subs[1].subscriptionId == defaultId) 1 else 0
+                )
+            }
         }
     } catch (t: Throwable) {
-        L.w("cellLevels: ${t.message}")
-        emptyList()
+        L.w("dualSimSignals: ${t.message}")
+        null
     }
+
+    fun cellLevels(context: Context, airplane: Boolean): List<Int> =
+        dualSimSignals(context, airplane)?.let { listOf(it.first, it.second) }.orEmpty()
 
     /** One subscription's signal level (0..4); 0 when it cannot be read. */
     private fun levelForSubscription(context: Context, subId: Int): Int = try {
@@ -141,3 +148,6 @@ internal object CellReader {
         false
     }
 }
+
+/** Signal levels in SIM slot order and which of those slots supplies mobile data. */
+internal data class DualSimSignals(val first: Int, val second: Int, val defaultDataIndex: Int)

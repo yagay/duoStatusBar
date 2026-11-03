@@ -40,6 +40,8 @@ internal class DuoStateMonitor(private val context: Context, private val host: D
     private var dnd = false
     private var wifiLevel = 3
     private var cellLevel = 4
+    /** Null hides the inset dots (single SIM / unavailable subscription data). */
+    private var innerCellLevel: Int? = null
     /** Whether the Wi-Fi radio is on: off hands the middle slot to the cellular generation (FR-06). */
     private var wifiOn = true
     /** Whether Wi-Fi is the active data path; false means the phone is really on mobile data. */
@@ -373,14 +375,20 @@ internal class DuoStateMonitor(private val context: Context, private val host: D
             wifiActive = SystemReaders.isWifiActive(context, wifiActive)
             wifiValidated = SystemReaders.isWifiValidated(context)
             wifiLevel = SystemReaders.wifiLevel(context, wifiLevel)
-            // On a dual-SIM phone the user chooses which line the spheres follow; "auto" is the default
-            // data line, which the default TelephonyManager already reports.
-            val levels = SystemReaders.cellLevels(context, airplane)
-            cellLevel = when {
-                levels.size < 2 -> SystemReaders.cellLevel(context, airplane, cellLevel)
-                host.simChoice == "sim1" -> levels.getOrElse(0) { cellLevel }
-                host.simChoice == "sim2" -> levels.getOrElse(1) { levels.getOrElse(0) { cellLevel } }
-                else -> SystemReaders.cellLevel(context, airplane, cellLevel)
+            // Keep the first row on the chosen/default-data SIM; draw the other SIM as four
+            // inset dots on the same curved arc. Unavailable data preserves single-SIM behavior.
+            val dual = SystemReaders.dualSimSignals(context, airplane)
+            if (dual == null) {
+                cellLevel = SystemReaders.cellLevel(context, airplane, cellLevel)
+                innerCellLevel = null
+            } else {
+                val outerIndex = when (host.simChoice) {
+                    "sim1" -> 0
+                    "sim2" -> 1
+                    else -> dual.defaultDataIndex
+                }
+                cellLevel = if (outerIndex == 0) dual.first else dual.second
+                innerCellLevel = if (outerIndex == 0) dual.second else dual.first
             }
             val generation = SystemReaders.networkGeneration(context, airplane, networkText)
             if (generation != networkText) {
@@ -472,6 +480,7 @@ internal class DuoStateMonitor(private val context: Context, private val host: D
                     fgColor = fgColor(),
                     wifiLevel = wifiLevel,
                     cellLevel = cellLevel,
+                    innerCellLevel = innerCellLevel,
                     airplane = airplane,
                     dnd = dnd,
                     visible = visible,

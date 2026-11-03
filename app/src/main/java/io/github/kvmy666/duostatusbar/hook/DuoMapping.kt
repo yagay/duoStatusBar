@@ -134,7 +134,8 @@ object DuoMapping {
          * battery number when it is on. A visible charging bolt keeps the seat, so the number is
          * ignored then.
          */
-        downloadPercent: Int? = null
+        downloadPercent: Int? = null,
+        innerCellLevel: Int? = null
     ): DuoVisual {
         // The middle slot holds exactly one occupant (FR-06/FR-16): airplane wins, then DND, then
         // Wi-Fi; with Wi-Fi off the slot shows the cellular generation instead. The hand-over itself
@@ -152,6 +153,8 @@ object DuoMapping {
         val (outer, middle, dot) = SignalMapping.wifiOpacities(wifiLevel)
         val cells = SignalMapping.sphereOpacities(cellLevel, wifiLevel, airplane, wifiOn, wifiDots)
         val (circles, crescents, centerMoon) = signalDots(cells, dnd && dndDots)
+        val inner = innerCellLevel?.let { SignalMapping.cellOpacities(if (airplane) 0 else it) }
+            ?: listOf(0f, 0f, 0f, 0f)
         // The bolt is the only thing the "show charging bolt" switch removes: the ring still tints green
         // for a charging battery, but the top gap goes back to the percentage when the bolt is hidden.
         val chargingVisual = charging && showCharging
@@ -182,6 +185,10 @@ object DuoMapping {
             cell2Opacity = circles[1],
             cell3Opacity = circles[2],
             cell4Opacity = circles[3],
+            innerCell1Opacity = inner[0],
+            innerCell2Opacity = inner[1],
+            innerCell3Opacity = inner[2],
+            innerCell4Opacity = inner[3],
             moon1Opacity = crescents[0],
             moon2Opacity = crescents[1],
             moon3Opacity = crescents[2],

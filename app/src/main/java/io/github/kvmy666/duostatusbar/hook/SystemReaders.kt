@@ -26,6 +26,10 @@ internal object SystemReaders {
     fun cellLevels(context: Context, airplane: Boolean): List<Int> =
         CellReader.cellLevels(context, airplane)
 
+    @SuppressLint("MissingPermission")
+    fun dualSimSignals(context: Context, airplane: Boolean): DualSimSignals? =
+        CellReader.dualSimSignals(context, airplane)
+
     fun isWifiEnabled(context: Context, current: Boolean): Boolean =
         WifiReader.isWifiEnabled(context, current)
 
