@@ -58,6 +58,17 @@ class DualSimInsetDotsTest {
         assertTrue(dotBottom <= 91f)
     }
 
+    @Test fun packedSignalStateDecodesOnlyMatchingAospShape() {
+        // From AOSP SignalDrawable.getState(level,numLevels,cutOut):
+        val packed = (2 shl 16) or (6 shl 8) or 4
+        val state = SystemUiSignalState.decode(packed)
+        assertEquals(4, state?.level)
+        assertEquals(6, state?.numLevels)
+        assertEquals(2, state?.state)
+        assertEquals(null, SystemUiSignalState.decode(0x7f080123))
+        assertEquals(null, SystemUiSignalState.decode((3 shl 16) or (5 shl 8)))
+    }
+
     @Test fun ringArcEndsAreSymmetric() {
         val leftBottom = RingGeometry.LEFT_START
         val rightBottom = RingGeometry.RIGHT_FULL

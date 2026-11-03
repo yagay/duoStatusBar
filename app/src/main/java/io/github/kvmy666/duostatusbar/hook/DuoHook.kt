@@ -262,6 +262,9 @@ class DuoHook(private val lp: XC_LoadPackage.LoadPackageParam) {
             hookShadeHeader()
             hookStatusIconContainer()
             hookBarAppearance()
+            // Debug-only passive observer: it never changes the original SystemUI icon or our dots.
+            // Record what the OEM actually computes before deciding how to match the signal bars.
+            if (BuildConfig.DEBUG) SystemUiSignalProbe.install(lp.classLoader)
             // The settings receiver is already registered in start(), before this gate, so a restart
             // request still arrives when the module reads as off. Orientation is installed here, once
             // we know a rotation might need to attach the other set.
@@ -354,6 +357,8 @@ class DuoHook(private val lp: XC_LoadPackage.LoadPackageParam) {
                 IntentFilter().apply {
                     addAction(DuoSettingsClient.ACTION_SETTINGS_CHANGED)
                     addAction(DuoPrefs.ACTION_RESTART_SYSTEMUI)
+                    // Without this registration, the app's fresh-diagnostics request was ignored.
+                    addAction(DuoPrefs.ACTION_DIAGNOSTICS_REQUEST)
                 },
                 Context.RECEIVER_EXPORTED
             )

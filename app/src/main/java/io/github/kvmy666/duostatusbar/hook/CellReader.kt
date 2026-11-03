@@ -40,10 +40,15 @@ internal object CellReader {
                 .sortedBy { it.simSlotIndex }
             if (subs.size < 2) null else {
                 val defaultId = SubscriptionManager.getDefaultDataSubscriptionId()
-                DualSimSignals(
-                    first = levelForSubscription(context, subs[0].subscriptionId),
-                    second = levelForSubscription(context, subs[1].subscriptionId),
-                    defaultDataIndex = if (subs[1].subscriptionId == defaultId) 1 else 0
+                val first = levelForSubscription(context, subs[0].subscriptionId)
+                val second = levelForSubscription(context, subs[1].subscriptionId)
+                // Do not silently substitute the default SIM when one subscription read fails:
+                // that was capable of displaying the same signal level for both lines.
+                if (first == null || second == null) null else DualSimSignals(
+                    first = first, second = second,
+                    defaultDataIndex = if (subs[1].subscriptionId == defaultId) 1 else 0,
+                    firstSubId = subs[0].subscriptionId,
+                    secondSubId = subs[1].subscriptionId
                 )
             }
         }
@@ -55,18 +60,18 @@ internal object CellReader {
     fun cellLevels(context: Context, airplane: Boolean): List<Int> =
         dualSimSignals(context, airplane)?.let { listOf(it.first, it.second) }.orEmpty()
 
-    /** One subscription's signal level (0..4); 0 when it cannot be read. */
-    private fun levelForSubscription(context: Context, subId: Int): Int = try {
+    /** Null on an unreadable subscription: never show the default SIM's signal as another card. */
+    private fun levelForSubscription(context: Context, subId: Int): Int? = try {
         val base = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
         val perSub = base?.let { tm ->
             TelephonyManager::class.java
                 .getMethod("createForSubscriptionId", Int::class.javaPrimitiveType)
                 .invoke(tm, subId) as? TelephonyManager
         }
-        ((perSub ?: base)?.signalStrength?.level ?: 0).coerceIn(0, 4)
+        perSub?.signalStrength?.level?.coerceIn(0, 4)
     } catch (t: Throwable) {
         L.w("cellLevel[$subId]: ${t.message}")
-        0
+        null
     }
 
     /**
@@ -150,4 +155,7 @@ internal object CellReader {
 }
 
 /** Signal levels in SIM slot order and which of those slots supplies mobile data. */
-internal data class DualSimSignals(val first: Int, val second: Int, val defaultDataIndex: Int)
+internal data class DualSimSignals(
+    val first: Int, val second: Int, val defaultDataIndex: Int,
+    val firstSubId: Int, val secondSubId: Int
+)

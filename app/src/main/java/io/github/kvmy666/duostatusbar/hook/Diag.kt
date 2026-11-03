@@ -176,6 +176,9 @@ internal object Diag {
 
             appendLine("readers:")
             appendReaders(context, this)
+            appendLine("SystemUI signal comparison (passive, diagnostic only):")
+            appendLine(SystemUiSignalProbe.snapshot())
+            appendMobileViewStates(root, this)
 
             appendLine("module:")
             appendLine("  stage=$stage attempts=${DuoGuard(context).attempts()}")
@@ -265,10 +268,48 @@ internal object Diag {
                     "generation=${SystemReaders.networkGeneration(context, airplane, "?")} " +
                     "mobileData=${SystemReaders.isMobileDataEnabled(context)} " +
                     "cellLevels=${SystemReaders.cellLevels(context, airplane)}")
+            val dual = SystemReaders.dualSimSignals(context, airplane)
+            sb.appendLine("  perSim=slot0(sub=${dual?.firstSubId},level=${dual?.first}), " +
+                    "slot1(sub=${dual?.secondSubId},level=${dual?.second}), " +
+                    "defaultDataSlot=${dual?.defaultDataIndex ?: "unavailable"}")
             sb.appendLine("  airplane=$airplane saver=${SystemReaders.isPowerSaveOn(context)} " +
                     "dnd=${SystemReaders.isDndOn(context)}")
         } catch (t: Throwable) {
             sb.appendLine("  readers unavailable: ${t.javaClass.simpleName}: ${t.message}")
+        }
+    }
+
+    /** Passive snapshot of the real stock mobile views; they may be GONE but still hold their icons. */
+    private fun appendMobileViewStates(root: View?, sb: StringBuilder) {
+        sb.appendLine("  stock mobile_combo views:")
+        if (root == null) { sb.appendLine("    no status bar window"); return }
+        var found = 0
+        val queue = java.util.ArrayDeque<Pair<View, Int>>()
+        queue.add(root to 0)
+        while (queue.isNotEmpty() && found < 4) {
+            val (view, depth) = queue.removeFirst()
+            if (idName(view) == "mobile_combo") {
+                sb.appendLine("    view#${found++}: class=${view.javaClass.simpleName} " +
+                    "size=${view.width}x${view.height} visibility=${view.visibility}")
+                appendDrawableLevels(view, sb, 0)
+                continue
+            }
+            if (depth < MAX_TREE_DEPTH && view is ViewGroup) {
+                for (i in 0 until view.childCount) queue.add(view.getChildAt(i) to depth + 1)
+            }
+        }
+        if (found == 0) sb.appendLine("    no mobile_combo views; OEM may use Compose icons")
+    }
+
+    private fun appendDrawableLevels(view: View, sb: StringBuilder, depth: Int) {
+        if (depth > 7) return
+        if (view is android.widget.ImageView) {
+            val drawable = view.drawable
+            sb.appendLine("      drawable=${drawable?.javaClass?.simpleName ?: "none"} " +
+                "level=${drawable?.level ?: "none"} id=${idName(view)}")
+        }
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) appendDrawableLevels(view.getChildAt(i), sb, depth + 1)
         }
     }
 
